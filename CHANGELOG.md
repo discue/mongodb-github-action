@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.0.0 (2026-10-14)
+
+
+### Features
+
+* modernize this action ([9bda63d](https://github.com/discue/mongodb-github-action/commit/9bda63dacc22cf87c84b754ba3e840d8ed488593))
+
+
+### Miscellaneous Chores
+
+* release 2.0.0 ([8a06bdc](https://github.com/discue/mongodb-github-action/commit/8a06bdc9f750dd5b3244107bceb87c0bd11fe7ea))
+
 ## [1.7.0](https://github.com/superchargejs/mongodb-github-action/compare/v1.6.0...v1.7.0) - 2021-07-21
 
 ### Added
