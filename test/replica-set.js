@@ -4,25 +4,25 @@ const Lab = require('@hapi/lab')
 const Mongoose = require('mongoose')
 const { expect } = require('@hapi/code')
 const { describe, it, before, after } = (exports.lab = Lab.script())
-const { MONGODB_PORT = 27017, MONGODB_REPLICA_SET = 'mongodb-test-rs' } = process.env
+const { MONGODB_PORT = 27017, MONGODB_REPLICA_SET = 'mongodb-test-rs', MONGODB_CONNECTION_STRING = null } = process.env
 
 describe('MongoDB Replica Set ->', () => {
   before(async () => {
-    const connectionString = `mongodb://localhost:${MONGODB_PORT}/test?replicaSet=${MONGODB_REPLICA_SET}`
+    const connectionString = MONGODB_CONNECTION_STRING || `mongodb://127.0.0.1:${MONGODB_PORT}/test?replicaSet=${MONGODB_REPLICA_SET}`
 
     console.log('---------------------------------------------------------------------')
     console.log('connecting to MongoDB using connection string -> ' + connectionString)
     console.log('---------------------------------------------------------------------')
 
     await Mongoose.connect(connectionString, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 1500
+      serverSelectionTimeoutMS: 5000
     })
   })
 
   after(async () => {
-    await Mongoose.connection.db.dropDatabase()
+    if (Mongoose.connection && Mongoose.connection.db) {
+      await Mongoose.connection.db.dropDatabase()
+    }
     await Mongoose.disconnect()
   })
 
@@ -35,7 +35,7 @@ describe('MongoDB Replica Set ->', () => {
   })
 
   it('saves a document', async () => {
-    const Dog = Mongoose.model('Dog', { name: String })
+    const Dog = Mongoose.model('Dog', new Mongoose.Schema({ name: String }))
     const albert = await new Dog({ name: 'Albert' }).save()
     expect(albert.name).to.equal('Albert')
   })
@@ -58,6 +58,7 @@ describe('MongoDB Replica Set ->', () => {
     ).to.exist()
 
     await session.commitTransaction()
+    await session.endSession()
 
     expect(
       await Customer.findOne({ name: 'test-customer' })

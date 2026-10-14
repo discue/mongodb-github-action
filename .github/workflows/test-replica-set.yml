@@ -5,47 +5,53 @@ on: [push, pull_request]
 jobs:
   single-node-replica-set-on-default-port:
     name: MongoDB v${{ matrix.mongodb-version }} RS on default port
-
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        mongodb-version: ['4.0', '4.2', '4.4', '5.0']
+        mongodb-version: ['7.0', '8.0']
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Start MongoDB Server v${{ matrix.mongodb-version }}
+        id: mongodb
         uses: ./
         with:
           mongodb-version: ${{ matrix.mongodb-version }}
           mongodb-replica-set: mongodb-test-rs
 
       - name: Setup NodeJS
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v4
         with:
-          node-version: 16
+          node-version: 'lts/*'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci || npm install
 
       - name: Run tests
         run: npm test ./test/replica-set.js
         env:
           MONGODB_REPLICA_SET: mongodb-test-rs
+          MONGODB_CONNECTION_STRING: ${{ steps.mongodb.outputs.connection-string }}
+
+      - name: Stop MongoDB
+        if: always()
+        uses: ./teardown
 
   single-node-replica-set-on-custom-port:
+    name: MongoDB v${{ matrix.mongodb-version }} RS on custom port
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        mongodb-version: ['4.0', '4.2', '4.4', '5.0']
+        mongodb-version: ['7.0', '8.0']
 
-    name: MongoDB v${{ matrix.mongodb-version }} RS on custom port
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Start MongoDB Server v${{ matrix.mongodb-version }}
+        id: mongodb
         uses: ./
         with:
           mongodb-port: 12345
@@ -53,15 +59,20 @@ jobs:
           mongodb-replica-set: mongodb-test-rs
 
       - name: Setup NodeJS
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v4
         with:
-          node-version: 16
+          node-version: 'lts/*'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci || npm install
 
       - name: Run tests
         run: npm test ./test/replica-set.js
         env:
           MONGODB_PORT: 12345
           MONGODB_REPLICA_SET: mongodb-test-rs
+          MONGODB_CONNECTION_STRING: ${{ steps.mongodb.outputs.connection-string }}
+
+      - name: Stop MongoDB
+        if: always()
+        uses: ./teardown

@@ -5,125 +5,148 @@ on: [push, pull_request]
 jobs:
   single-instance-on-default-port:
     name: MongoDB v${{ matrix.mongodb-version }} on default port
-
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        mongodb-version: ['4.0', '4.2', '4.4', '5.0']
+        mongodb-version: ['7.0', '8.0']
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Start MongoDB Server v${{ matrix.mongodb-version }}
+        id: mongodb
         uses: ./
         with:
           mongodb-version: ${{ matrix.mongodb-version }}
 
       - name: Setup NodeJS
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v4
         with:
-          node-version: 16
+          node-version: 'lts/*'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci || npm install
 
       - name: Run tests
         run: npm test ./test/single-instance.js
+        env:
+          MONGODB_CONNECTION_STRING: ${{ steps.mongodb.outputs.connection-string }}
+
+      - name: Stop MongoDB
+        if: always()
+        uses: ./teardown
 
   single-instance-with-credentials:
     name: MongoDB v${{ matrix.mongodb-version }} on default port with credentials
-
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        mongodb-version: ['4.0', '4.2', '4.4', '5.0']
+        mongodb-version: ['7.0', '8.0']
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Start MongoDB Server v${{ matrix.mongodb-version }}
+        id: mongodb
         uses: ./
         with:
           mongodb-version: ${{ matrix.mongodb-version }}
           mongodb-root-username: admin
-          mongodb-root-password: admin
+          mongodb-root-password: admin_secure_password
 
       - name: Setup NodeJS
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v4
         with:
-          node-version: 16
+          node-version: 'lts/*'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci || npm install
 
       - name: Run tests
         run: npm test ./test/single-instance.js
         env:
           MONGODB_USERNAME: admin
-          MONGODB_PASSWORD: admin
+          MONGODB_PASSWORD: admin_secure_password
+          MONGODB_CONNECTION_STRING: ${{ steps.mongodb.outputs.connection-string }}
+
+      - name: Stop MongoDB
+        if: always()
+        uses: ./teardown
 
   single-instance-on-custom-port:
+    name: MongoDB v${{ matrix.mongodb-version }} on custom port
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        mongodb-version: ['4.0', '4.2', '4.4', '5.0']
+        mongodb-version: ['7.0', '8.0']
 
-    name: MongoDB v${{ matrix.mongodb-version }} on custom port
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Start MongoDB Server v${{ matrix.mongodb-version }}
+        id: mongodb
         uses: ./
         with:
           mongodb-version: ${{ matrix.mongodb-version }}
           mongodb-port: 12345
 
       - name: Setup NodeJS
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v4
         with:
-          node-version: 16
+          node-version: 'lts/*'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci || npm install
 
       - name: Run tests
         run: npm test ./test/custom-port.js
         env:
           MONGODB_PORT: 12345
+          MONGODB_CONNECTION_STRING: ${{ steps.mongodb.outputs.connection-string }}
+
+      - name: Stop MongoDB
+        if: always()
+        uses: ./teardown
 
   single-instance-on-custom-port-with-credentials:
+    name: MongoDB v${{ matrix.mongodb-version }} on custom port with credentials
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        mongodb-version: ['4.0', '4.2', '4.4', '5.0']
+        mongodb-version: ['7.0', '8.0']
 
-    name: MongoDB v${{ matrix.mongodb-version }} on custom port with credentials
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Start MongoDB Server v${{ matrix.mongodb-version }}
+        id: mongodb
         uses: ./
         with:
           mongodb-version: ${{ matrix.mongodb-version }}
           mongodb-port: 12345
           mongodb-root-username: admin
-          mongodb-root-password: admin
+          mongodb-root-password: admin_secure_password
 
       - name: Setup NodeJS
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v4
         with:
-          node-version: 16
+          node-version: 'lts/*'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci || npm install
 
       - name: Run tests
         run: npm test ./test/custom-port.js
         env:
           MONGODB_PORT: 12345
           MONGODB_USERNAME: admin
-          MONGODB_PASSWORD: admin
+          MONGODB_PASSWORD: admin_secure_password
+          MONGODB_CONNECTION_STRING: ${{ steps.mongodb.outputs.connection-string }}
+
+      - name: Stop MongoDB
+        if: always()
+        uses: ./teardown

@@ -1,170 +1,185 @@
-## NOTICE: this is a fork from [supercharge mongodb github action](https://github.com/supercharge/mongodb-github-action)
+# MongoDB GitHub Action
 
-## Introduction
-This GitHub Action starts a MongoDB server or MongoDB replica set. By default, the MongoDB server is available on the default port `27017`. You can configure a custom port using the `mongodb-port` input as well as other options. The examples show how to use a custom port.
+A GitHub Action that starts a modern MongoDB server or MongoDB replica set in your CI/CD workflow. Built as a fast, native composite action targeting recent MongoDB versions (`7.0`, `8.0`, `latest`).
 
-This is useful when running tests against a MongoDB database.
+## Features
+
+- **Fast & Lightweight**: Implemented as a GitHub Actions Composite Action (`using: composite`) that runs directly against the runner's Docker engine without extra image-build overhead.
+- **Modern MongoDB Support**: Built specifically for modern MongoDB (`7.0`, `8.0`, `latest`) using `mongosh`.
+- **Workflow-Ready Outputs**: Automatically emits `connection-string`, `port`, `replica-set`, and `container-name` outputs so subsequent steps in your workflow can connect immediately.
+- **Enterprise Security**: Automatically masks sensitive inputs (`mongodb-root-password`) via GitHub Actions log masking (`::add-mask::`) and avoids logging credentials.
+- **Teardown & Cleanup Support**: Includes automatic startup conflict cleanup and an optional `teardown` companion sub-action (`discue/mongodb-github-action/teardown@v2`) for guaranteed post-job container removal.
+- **Port & Container Flexibility**: Configurable ports, container names, connection timeouts, and database initialization.
+
+---
 
 ## Usage
-A code example says more than a 1000 words. Here’s an exemplary GitHub Action using a MongoDB server in versions `4.0` and `4.2` to test a Node.js app:
+
+### Basic Single Instance with Cleanup
 
 ```yaml
-name: Run tests
+name: CI
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [12.x, 14.x]
-        mongodb-version: ['4.0', '4.2', '4.4']
-
     steps:
-    - name: Git checkout
-      uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v1
-      with:
-        node-version: ${{ matrix.node-version }}
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
 
-    - name: Start MongoDB
-      uses: supercharge/mongodb-github-action@1.6.0
-      with:
-        mongodb-version: ${{ matrix.mongodb-version }}
+      - name: Start MongoDB
+        id: mongodb
+        uses: discue/mongodb-github-action@v2
+        with:
+          mongodb-version: '8.0'
 
-    - run: npm install
+      - name: Install dependencies
+        run: npm ci
 
-    - run: npm test
-      env:
-        CI: true
+      - name: Run tests
+        run: npm test
+        env:
+          # Connect to the MongoDB server running in this workflow:
+          MONGODB_URI: ${{ steps.mongodb.outputs.connection-string }}
+
+      - name: Stop MongoDB
+        if: always() # Ensures cleanup runs even if previous steps failed
+        uses: discue/mongodb-github-action/teardown@v2
 ```
 
-### Using a Custom MongoDB Port
-You can start the MongoDB instance on a custom port. Use the `mongodb-port: 12345` input to configure port `12345` for MongoDB. Replace `12345` with the port you want to use in your test runs.
+---
 
-The following example starts a MongoDB server on port `42069`:
+### Connecting to MongoDB in the Same Workflow
+
+Steps running in the same workflow job can connect to the MongoDB instance using either:
+
+1. **The Action Output (Recommended)**:
+   ```yaml
+   env:
+     MONGODB_URI: ${{ steps.mongodb.outputs.connection-string }}
+   ```
+2. **Direct Localhost / 127.0.0.1 URI**:
+   ```
+   mongodb://127.0.0.1:27017
+   ```
+   > **Note**: For Node.js `lts/*` applications, use `127.0.0.1` rather than `localhost` to ensure IPv4 loopback connection compatibility.
+
+---
+
+### With Username and Password
 
 ```yaml
-name: Run tests
+      - name: Start MongoDB with Authentication
+        id: mongodb
+        uses: discue/mongodb-github-action@v2
+        with:
+          mongodb-version: '8.0'
+          mongodb-root-username: admin
+          mongodb-root-password: ${{ secrets.MONGODB_PASSWORD }}
+          mongodb-db: my_database
 
-on: [push]
+      - name: Run tests
+        run: npm test
+        env:
+          MONGODB_URI: ${{ steps.mongodb.outputs.connection-string }}
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [12.x, 14.x]
-        mongodb-version: ['4.0', '4.2', '4.4']
-
-    steps:
-    - name: Git checkout
-      uses: actions/checkout@v2
-
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v1
-      with:
-        node-version: ${{ matrix.node-version }}
-
-    - name: Start MongoDB
-      uses: supercharge/mongodb-github-action@1.6.0
-      with:
-        mongodb-version: ${{ matrix.mongodb-version }}
-        mongodb-replica-set: test-rs
-        mongodb-port: 42069
-
-    - name: Install dependencies
-      run: npm install
-
-    - name: Run tests
-      run: npm test
-      env:
-        CI: true
+      - name: Stop MongoDB
+        if: always()
+        uses: discue/mongodb-github-action/teardown@v2
 ```
 
-### With a Replica Set
-You can run your tests against a MongoDB replica set by adding the `mongodb-replica-set: your-replicate-set-name` input. The value for `mongodb-replica-set` defines the name of your replica set. Replace `your-replicate-set-name` with the replica set name you want to use in your tests.
+---
 
-The following example uses the replica set name `test-rs`:
+### Using a Custom Port
 
 ```yaml
-name: Run tests
+      - name: Start MongoDB on Custom Port
+        id: mongodb
+        uses: discue/mongodb-github-action@v2
+        with:
+          mongodb-version: '7.0'
+          mongodb-port: 27018
+          container-name: mongodb-custom
 
-on: [push]
+      - name: Run tests
+        run: npm test
+        env:
+          MONGODB_URI: ${{ steps.mongodb.outputs.connection-string }}
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [12.x, 14.x]
-        mongodb-version: ['4.0', '4.2', '4.4']
-
-    steps:
-    - name: Git checkout
-      uses: actions/checkout@v2
-
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v1
-      with:
-        node-version: ${{ matrix.node-version }}
-
-    - name: Start MongoDB
-      uses: supercharge/mongodb-github-action@1.6.0
-      with:
-        mongodb-version: ${{ matrix.mongodb-version }}
-        mongodb-replica-set: test-rs
-        mongodb-port: 42069
-
-    - name: Install dependencies
-      run: npm install
-
-    - name: Run tests
-      run: npm test
-      env:
-        CI: true
+      - name: Stop MongoDB
+        if: always()
+        uses: discue/mongodb-github-action/teardown@v2
+        with:
+          container-name: mongodb-custom
 ```
 
-### With a username and password
-You can run your tests against a MongoDB with needed username and password by adding the `mongodb-root-username: username` and `mongodb-root-password: secret` input.
+---
+
+### With a Single-Node Replica Set
+
+Replica sets are ideal for testing features like MongoDB Transactions, Change Streams, and multi-document consistency.
+
+> **Note**: Replica sets are currently **unauthenticated**. Providing `mongodb-root-username` or `mongodb-root-password` together with `mongodb-replica-set` is not currently supported.
 
 ```yaml
-name: Run tests
+      - name: Start MongoDB Replica Set
+        id: mongodb
+        uses: discue/mongodb-github-action@v2
+        with:
+          mongodb-version: '8.0'
+          mongodb-replica-set: rs0
 
-on: [push]
+      - name: Run tests
+        run: npm test
+        env:
+          MONGODB_URI: ${{ steps.mongodb.outputs.connection-string }}
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [12.x, 14.x]
-        mongodb-version: ['4.0', '4.2', '4.4']
-
-    steps:
-    - name: Git checkout
-      uses: actions/checkout@v2
-
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v1
-      with:
-        node-version: ${{ matrix.node-version }}
-
-    - name: Start MongoDB
-      uses: supercharge/mongodb-github-action@1.6.0
-      with:
-        mongodb-version: ${{ matrix.mongodb-version }}
-        mongodb-root-username: admin
-        mongodb-root-password: admin
-
-    - name: Install dependencies
-      run: npm install
-
-    - name: Run tests
-      run: npm test
-      env:
-        CI: true
+      - name: Stop MongoDB
+        if: always()
+        uses: discue/mongodb-github-action/teardown@v2
 ```
+
+---
+
+## Action Reference
+
+### Main Action Inputs (`discue/mongodb-github-action@v2`)
+
+| Input | Required | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `mongodb-version` | No | `'latest'` | MongoDB Docker image tag (e.g. `'7.0'`, `'8.0'`, `'latest'`). |
+| `mongodb-replica-set` | No | `''` | Replica set name (if set, initializes a single-node replica set). |
+| `mongodb-port` | No | `'27017'` | Port mapped on the runner host. |
+| `mongodb-root-username` | No | `''` | Root username for authentication (single-instance only). |
+| `mongodb-root-password` | No | `''` | Root password for authentication (single-instance only; automatically masked). |
+| `mongodb-db` | No | `''` | Initial database name to create. |
+| `container-name` | No | `'mongodb'` | Name of the Docker container on the host. |
+| `connection-timeout` | No | `'30'` | Maximum wait time in seconds for MongoDB to accept connections. |
+
+### Main Action Outputs
+
+| Output | Description | Example |
+| :--- | :--- | :--- |
+| `connection-string` | Complete MongoDB connection URI ready for client use | `mongodb://admin:pass@127.0.0.1:27017/?authSource=admin` |
+| `port` | Exposed host port | `27017` |
+| `replica-set` | Replica set name (if enabled) | `rs0` |
+| `container-name` | Docker container name | `mongodb` |
+
+### Teardown Sub-Action Inputs (`discue/mongodb-github-action/teardown@v2`)
+
+| Input | Required | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `container-name` | No | `'mongodb'` | Docker container name to stop and remove. |
+
+---
+
+## License
+
+MIT © [discue](https://github.com/discue) (Originally forked from [supercharge](https://github.com/supercharge))

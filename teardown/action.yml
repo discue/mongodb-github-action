@@ -1,0 +1,23 @@
+name: 'MongoDB Teardown for GitHub Actions'
+description: 'Stop and remove a running MongoDB container in GitHub Actions'
+
+branding:
+  icon: 'database'
+  color: 'gray-dark'
+
+inputs:
+  container-name:
+    description: 'Docker container name to stop and remove (default "mongodb")'
+    required: false
+    default: 'mongodb'
+
+runs:
+  using: 'composite'
+  steps:
+    - id: stop-mongodb
+      shell: bash
+      env:
+        CONTAINER_NAME: ${{ inputs.container-name }}
+        GITHUB_ACTION_PATH: ${{ github.action_path }}
+      run: |
+        "${GITHUB_ACTION_PATH}/stop-mongodb.sh"

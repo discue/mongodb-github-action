@@ -1,40 +1,30 @@
 {
-  "name": "@supercharge/mongodb-github-action",
+  "name": "@discue/mongodb-github-action",
   "description": "MongoDB GitHub Action",
-  "version": "1.6.0",
-  "author": "Marcus Pöhls <marcus@superchargejs.com>",
+  "version": "2.0.0",
   "bugs": {
-    "url": "https://github.com/supercharge/mongodb-github-action/issues"
+    "url": "https://github.com/discue/mongodb-github-action/issues"
   },
   "devDependencies": {
-    "@hapi/code": "~8.0.3",
-    "@hapi/lab": "~24.2.1",
-    "eslint": "~7.27.0",
-    "eslint-config-standard": "~16.0.3",
-    "eslint-plugin-import": "~2.23.4",
-    "eslint-plugin-node": "~11.1.0",
-    "eslint-plugin-promise": "~4.3.1",
-    "eslint-plugin-standard": "~4.1.0",
-    "mongoose": "~5.12.12"
+    "@hapi/code": "^9.0.3",
+    "@hapi/lab": "^26.0.1",
+    "mongoose": "^8.10.0"
   },
-  "engines": {
-    "node": ">=8"
-  },
-  "homepage": "https://github.com/supercharge/mongodb-github-action",
+  "homepage": "https://github.com/discue/mongodb-github-action",
   "keywords": [
     "github",
     "github-action",
-    "supercharge",
-    "superchargejs"
+    "mongodb",
+    "ci-cd"
   ],
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/supercharge/mongodb-github-action.git"
+    "url": "git+https://github.com/discue/mongodb-github-action.git"
   },
   "scripts": {
     "list-tests": "lab --assert @hapi/code --dry --verbose",
-    "test": "lab --assert @hapi/code --leaks --coverage --lint --reporter console --output stdout --reporter html --output ./coverage/coverage.html",
-    "test-single": "lab --assert @hapi/code --leaks --lint --id"
+    "test": "lab --assert @hapi/code --leaks --reporter console --output stdout",
+    "test-single": "lab --assert @hapi/code --leaks --id"
   }
 }
