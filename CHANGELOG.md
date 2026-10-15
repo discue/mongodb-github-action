@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1](https://github.com/discue/mongodb-github-action/compare/v2.0.0...v2.0.1) (2026-10-15)
+
+
+### Bug Fixes
+
+* increase default timeout ([6cf8c24](https://github.com/discue/mongodb-github-action/commit/6cf8c247cdb650c1e3dec42026a6051e191f9fac))
+
 ## 2.0.0 (2026-10-14)
 
 
