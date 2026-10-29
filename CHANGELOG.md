@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.2](https://github.com/discue/mongodb-github-action/compare/v2.0.1...v2.0.2) (2026-10-29)
+
+
+### Bug Fixes
+
+* set GLIBC_TUNABLES=glibc.pthread.rseq=1 for Linux kernel 6.19+ compatibility and strip UTF-8 BOM ([c436f82](https://github.com/discue/mongodb-github-action/commit/c436f82f65f088fad94804817ea644fa44850e2a))
+
 ## [2.0.1](https://github.com/discue/mongodb-github-action/compare/v2.0.0...v2.0.1) (2026-10-15)
 
 
