@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env bash
+#!/usr/bin/env bash
 set -eo pipefail
 
 # Map inputs from environment variables (or fallback to positional arguments for backwards compatibility)
@@ -41,7 +41,8 @@ if [ -z "${MONGODB_REPLICA_SET}" ]; then
   fi
   echo "::endgroup::"
 
-  DOCKER_ENV_ARGS=()
+  # Work around MongoDB SERVER-121912 (TCMalloc per-CPU rseq incompatibility on Linux kernel 6.19+)
+  DOCKER_ENV_ARGS=(--env "GLIBC_TUNABLES=glibc.pthread.rseq=1")
   if [ -n "${MONGODB_ROOT_USERNAME}" ]; then
     DOCKER_ENV_ARGS+=(--env "MONGO_INITDB_ROOT_USERNAME=${MONGODB_ROOT_USERNAME}")
     DOCKER_ENV_ARGS+=(--env "MONGO_INITDB_ROOT_PASSWORD=${MONGODB_ROOT_PASSWORD}")
@@ -123,6 +124,7 @@ docker run \
   --name "${CONTAINER_NAME}" \
   --publish "${MONGODB_PORT}:${MONGODB_PORT}" \
   --detach \
+  --env "GLIBC_TUNABLES=glibc.pthread.rseq=1" \
   mongo:"${MONGODB_VERSION}" \
   mongod --replSet "${MONGODB_REPLICA_SET}" --port "${MONGODB_PORT}" --bind_ip_all
 

@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env bash
+#!/usr/bin/env bash
 set -eo pipefail
 
 CONTAINER_NAME="${CONTAINER_NAME:-mongodb}"
